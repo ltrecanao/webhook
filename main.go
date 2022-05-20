@@ -1,36 +1,49 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
-	"strconv"
 )
 
 func main() {
-	http.HandleFunc("/webhook", webhook)
+	http.HandleFunc("/pipelines", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			getPipelines(w, r)
+
+		case http.MethodPost:
+			addPipelines(w, r)
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			fmt.Fprintf(w, "Metodo no permitido")
+			return
+		}
+	})
 	http.ListenAndServe(":8080", nil)
 	// http.ListenAndServeTLS( ":8443", "./cert.pem", "./key.pem", nil )
 }
 
-var array []string
+type Pipes struct {
+	Name   string
+	Status string
+}
 
-func webhook(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	add, okForm := r.Form["add"]
-	if okForm && len(add) == 1 {
-		array = append(array, string(add[0]))
-	}
+var pipelines []*Pipes = []*Pipes{}
 
-	id, ok := r.URL.Query()["id"]
-	if ok && len(id) == 1 {
-		id, err := strconv.Atoi(id[0])
-		if err != nil {
-			return
-		}
-		for i, info := range array {
-			if i == id {
-				w.Write([]byte(info))
-				return
-			}
-		}
+func getPipelines(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(pipelines)
+}
+
+func addPipelines(w http.ResponseWriter, r *http.Request) {
+	pipes := &Pipes{}
+	err := json.NewDecoder(r.Body).Decode(pipes)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "%v", err)
+		return
 	}
+	pipelines = append(pipelines, pipes)
 }
