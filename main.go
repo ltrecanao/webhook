@@ -6,14 +6,14 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/pipeline", pipeline)
+	http.HandleFunc("/webhook", webhook)
 	http.ListenAndServe(":8080", nil)
 	// http.ListenAndServeTLS( ":8443", "./cert.pem", "./key.pem", nil )
 }
 
 var array []string
 
-func pipeline(w http.ResponseWriter, r *http.Request) {
+func webhook(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	add, okForm := r.Form["add"]
 	if okForm && len(add) == 1 {
